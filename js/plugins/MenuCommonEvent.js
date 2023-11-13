@@ -563,7 +563,7 @@
     // Game_Screen
     //  シーンごとにピクチャを管理できるようにします。
     //=============================================================================
-    if (param.maxMenuPicture > 0) {
+/*     if (param.maxMenuPicture > 0) {
         var _Game_Screen_realPictureId      = Game_Screen.prototype.realPictureId;
         Game_Screen.prototype.realPictureId = function(pictureId) {
             var sceneIndex = $gameTemp.getSceneIndex();
@@ -582,7 +582,7 @@
         Game_Screen.prototype.maxMapPictures = function() {
             return _Game_Screen_maxPictures.apply(this, arguments);
         };
-    }
+    } */
 
     //=============================================================================
     // Game_MenuCommonEvent

@@ -738,7 +738,7 @@ Game_Screen.prototype.eraseBattlePictures = function() {
 };
 
 Game_Screen.prototype.maxPictures = function() {
-    return 100;
+    return 200;
 };
 
 Game_Screen.prototype.startFadeOut = function(duration) {
@@ -1331,6 +1331,7 @@ Game_Action.prototype.isForAll = function() {
 };
 
 Game_Action.prototype.needsSelection = function() {
+	if(this.subject().isActor() && $gameSwitches.value(2917)) return this.checkItemScope([7, 9]);
     return this.checkItemScope([1, 7, 9]);
 };
 
@@ -1622,17 +1623,17 @@ Game_Action.prototype.itemMrf = function(target) {
 };
 
 Game_Action.prototype.itemHit = function(target) {
-    if (this.isPhysical()) {
-        return this.item().successRate * 0.01 * this.subject().hit;
-    } else {
-        return this.item().successRate * 0.01;
-    }
+	var a = this.item().successRate * 0.01;
+	if (this.isCertainHit()){return a;}
+	if (this.subject().isActor() && $gameSwitches.value(2917) && !this.isForAll()){a *= 0.33;}
+    if (this.isPhysical()){a *= this.subject().hit;}
+	return a;
 };
 
 Game_Action.prototype.itemEva = function(target) {
     if (this.isPhysical()) {
         return target.eva;
-    } else if (this.isMagical()) {
+    } else if (this.isMagical() && this.subject().mat <= (target.mdf + target.mat)) {
         return target.mev;
     } else {
         return 0;
@@ -1721,7 +1722,7 @@ Game_Action.prototype.elementsMaxRate = function(target, elements) {
 };
 
 Game_Action.prototype.applyCritical = function(damage) {
-    return damage * 3;
+    return damage * 2;
 };
 
 Game_Action.prototype.applyVariance = function(damage, variance) {
@@ -1760,9 +1761,6 @@ Game_Action.prototype.executeHpDamage = function(target, value) {
 };
 
 Game_Action.prototype.executeMpDamage = function(target, value) {
-    if (!this.isMpRecover()) {
-        value = Math.min(target.mp, value);
-    }
     if (value !== 0) {
         this.makeSuccess(target);
     }
@@ -2111,6 +2109,8 @@ Game_BattlerBase.TRAIT_EQUIP_ATYPE    = 52;
 Game_BattlerBase.TRAIT_EQUIP_LOCK     = 53;
 Game_BattlerBase.TRAIT_EQUIP_SEAL     = 54;
 Game_BattlerBase.TRAIT_SLOT_TYPE      = 55;
+Game_BattlerBase.TRAIT_EQUIP_CURSE    = 56;
+Game_BattlerBase.TRAIT_EQUIP_KEY      = 57;
 Game_BattlerBase.TRAIT_ACTION_PLUS    = 61;
 Game_BattlerBase.TRAIT_SPECIAL_FLAG   = 62;
 Game_BattlerBase.TRAIT_COLLAPSE_TYPE  = 63;
@@ -2193,7 +2193,7 @@ Game_BattlerBase.prototype.initialize = function() {
 
 Game_BattlerBase.prototype.initMembers = function() {
     this._hp = 1;
-    this._mp = 0;
+    this._mp = -9999;
     this._tp = 0;
     this._hidden = false;
     this.clearParamPlus();
@@ -2237,7 +2237,7 @@ Game_BattlerBase.prototype.resetStateCounts = function(stateId) {
 };
 
 Game_BattlerBase.prototype.isStateExpired = function(stateId) {
-    return this._stateTurns[stateId] === 0;
+    return this._stateTurns[stateId] <= 0;
 };
 
 Game_BattlerBase.prototype.updateStateTurns = function() {
@@ -2318,7 +2318,7 @@ Game_BattlerBase.prototype.updateBuffTurns = function() {
 
 Game_BattlerBase.prototype.die = function() {
     this._hp = 0;
-    this.clearStates();
+    //this.clearStates();
     this.clearBuffs();
 };
 
@@ -2422,11 +2422,7 @@ Game_BattlerBase.prototype.paramPlus = function(paramId) {
 };
 
 Game_BattlerBase.prototype.paramMin = function(paramId) {
-    if (paramId === 1) {
-        return 0;   // MMP
-    } else {
-        return 1;
-    }
+    return 1;
 };
 
 Game_BattlerBase.prototype.paramMax = function(paramId) {
@@ -2456,6 +2452,7 @@ Game_BattlerBase.prototype.param = function(paramId) {
 };
 
 Game_BattlerBase.prototype.xparam = function(xparamId) {
+	if(xparamId == 9 && this.isEnemy()) return this.traitsSum(Game_BattlerBase.TRAIT_XPARAM, xparamId) + 0.04 + 0.01 * $gameVariables.value(4980); 
     return this.traitsSum(Game_BattlerBase.TRAIT_XPARAM, xparamId);
 };
 
@@ -2524,11 +2521,19 @@ Game_BattlerBase.prototype.isEquipWtypeOk = function(wtypeId) {
 };
 
 Game_BattlerBase.prototype.isEquipAtypeOk = function(atypeId) {
-    return this.traitsSet(Game_BattlerBase.TRAIT_EQUIP_ATYPE).contains(atypeId);
+    return this.traitsSum(Game_BattlerBase.TRAIT_EQUIP_ATYPE,atypeId) >= 0;
 };
 
 Game_BattlerBase.prototype.isEquipTypeLocked = function(etypeId) {
     return this.traitsSet(Game_BattlerBase.TRAIT_EQUIP_LOCK).contains(etypeId);
+};
+
+Game_BattlerBase.prototype.isEquipTypeHasKey = function(etypeId) {
+    return this.traitsSet(Game_BattlerBase.TRAIT_EQUIP_KEY).contains(etypeId);
+};
+
+Game_BattlerBase.prototype.isEquipTypeCursed = function(etypeId) {
+    return this.traitsSet(Game_BattlerBase.TRAIT_EQUIP_CURSE).contains(etypeId);
 };
 
 Game_BattlerBase.prototype.isEquipTypeSealed = function(etypeId) {
@@ -2611,9 +2616,11 @@ Game_BattlerBase.prototype.refresh = function() {
     this.stateResistSet().forEach(function(stateId) {
         this.eraseState(stateId);
     }, this);
-    this._hp = this._hp.clamp(0, this.mhp);
-    this._mp = this._mp.clamp(0, this.mmp);
-    this._tp = this._tp.clamp(0, this.maxTp());
+	var miaRate = Math.max(($gameVariables.value(1259) - $gameVariables.value(1030)) / 100 , 0);
+	if(miaRate > 1) miaRate = 1;
+    this._hp = this._hp.clamp(-this.mhp, this.mhp);
+    this._mp = this._mp.clamp(-this.mmp, this.mmp * miaRate);
+    this._tp = this._tp.clamp(0,this.maxTp());
 };
 
 Game_BattlerBase.prototype.recoverAll = function() {
@@ -2755,7 +2762,16 @@ Game_BattlerBase.prototype.isSkillWtypeOk = function(skill) {
 };
 
 Game_BattlerBase.prototype.skillMpCost = function(skill) {
-    return Math.floor(skill.mpCost * this.mcr);
+	var notedata = skill.note.split(/[\r\n]+/);
+	var cost = skill.mpCost * this.mcr;
+	skill.mpCostPer = 0;
+	for (var i = 0; i < notedata.length; i++) {
+		var line = notedata[i];
+		if (line.match(/<(?:MP COST):[ ](\d+)([%％])>/i)) skill.mpCostPer = parseFloat(RegExp.$1 * 0.01);
+	
+    }
+	cost += this.mmp * skill.mpCostPer;
+    return Math.floor(cost);
 };
 
 Game_BattlerBase.prototype.skillTpCost = function(skill) {
@@ -2763,12 +2779,36 @@ Game_BattlerBase.prototype.skillTpCost = function(skill) {
 };
 
 Game_BattlerBase.prototype.canPaySkillCost = function(skill) {
-    return this._tp >= this.skillTpCost(skill) && this._mp >= this.skillMpCost(skill);
+    if (skill.id == 75 && this._tp >= 30) return true;
+    if (skill.id == 77 && this._tp >= 30) return true;
+    if (skill.id == 85 && this._tp >= 30) return true;
+	var a = this.skillMpCost(skill)
+    return this._tp >= this.skillTpCost(skill) && (this._mp >= a || a == 0);
 };
 
 Game_BattlerBase.prototype.paySkillCost = function(skill) {
     this._mp -= this.skillMpCost(skill);
+    if (skill.id == 66 || skill.id == 61 || skill.id == 56) {
+        this._mp -= this.param(1) * 0.08;
+    }
+    if (skill.id == 67 || skill.id == 62 || skill.id == 57 || skill.id == 76) {
+        this._mp -= this.param(1) * 0.18;
+    }
+    if (skill.id == 51) {
+        this._mp -= this.param(1) * 0.12;
+    }
+    if (skill.id == 52) {
+        this._mp -= this.param(1) * 0.27;
+    }
+    if (skill.id == 75 || skill.id == 85 || skill.id == 77){
+        this._tp -= 100;
+    }
+    if (skill.id == 39) {
+        this._tp -= 60;
+    }
+    else{
     this._tp -= this.skillTpCost(skill);
+    }
 };
 
 Game_BattlerBase.prototype.isOccasionOk = function(item) {
@@ -2826,7 +2866,9 @@ Game_BattlerBase.prototype.canEquipArmor = function(item) {
 };
 
 Game_BattlerBase.prototype.attackSkillId = function() {
-    return 1;
+    if(this.isEnemy()) return 341;
+	if($gameActors._data[1]._equips[0]._itemId < 5) return 21;
+	return 1;
 };
 
 Game_BattlerBase.prototype.guardSkillId = function() {
@@ -2998,8 +3040,18 @@ Game_Battler.prototype.clearResult = function() {
 
 Game_Battler.prototype.refresh = function() {
     Game_BattlerBase.prototype.refresh.call(this);
-    if (this.hp === 0) {
+    if (this.hp <= 0) {
         this.addState(this.deathStateId());
+		if(this.isEnemy()){
+			$gameVariables._data[318] += $dataEnemies[this._enemyId].meta['ELevel'] * 10;
+			$gameSystem.addToEnemyBook(this._enemyId);
+			if(window.keyList.length > 0){
+				if($gameActors.actor(1).hp <= 0 && $gameTroop.aliveMembers().length < 1){
+					window.keyList = [];
+				}
+			}
+			this.removeState(3);
+		}
     } else {
         this.removeState(this.deathStateId());
     }
@@ -3029,7 +3081,8 @@ Game_Battler.prototype.isStateRestrict = function(stateId) {
 
 Game_Battler.prototype.onRestrict = function() {
     Game_BattlerBase.prototype.onRestrict.call(this);
-    this.clearActions();
+	if(this._actions) this.makeActions();
+    else this.clearActions();
     this.states().forEach(function(state) {
         if (state.removeByRestriction) {
             this.removeState(state.id);
@@ -3223,6 +3276,7 @@ Game_Battler.prototype.clearTp = function() {
 };
 
 Game_Battler.prototype.chargeTpByDamage = function(damageRate) {
+	return;
     var value = Math.floor(50 * damageRate * this.tcr);
     this.gainSilentTp(value);
 };
@@ -3622,8 +3676,14 @@ Game_Actor.prototype.hasArmor = function(armor) {
 };
 
 Game_Actor.prototype.isEquipChangeOk = function(slotId) {
-    return (!this.isEquipTypeLocked(this.equipSlots()[slotId]) &&
-            !this.isEquipTypeSealed(this.equipSlots()[slotId]));
+	if(!this._equips[slotId]) return false;
+	if(slotId > 1){
+		if(this.isStateAffected(376)) return (!this.isEquipTypeLocked(this.equipSlots()[slotId]) && !this.isEquipTypeSealed(this.equipSlots()[slotId]) && !this.isEquipTypeHasKey(this.equipSlots()[slotId])); //解咒灵水
+	}
+		return (!this.isEquipTypeLocked(this.equipSlots()[slotId]) &&
+				!this.isEquipTypeSealed(this.equipSlots()[slotId]) &&
+				!this.isEquipTypeHasKey(this.equipSlots()[slotId]) &&
+				!this.isEquipTypeCursed(this.equipSlots()[slotId]));   
 };
 
 Game_Actor.prototype.changeEquip = function(slotId, item) {
@@ -4302,6 +4362,7 @@ Game_Enemy.prototype.initMembers = function() {
     this._plural = false;
     this._screenX = 0;
     this._screenY = 0;
+	this._semen = 0;
 };
 
 Game_Enemy.prototype.setup = function(enemyId, x, y) {
@@ -4344,11 +4405,26 @@ Game_Enemy.prototype.traitObjects = function() {
 };
 
 Game_Enemy.prototype.paramBase = function(paramId) {
-    return this.enemy().params[paramId];
+	switch($gameVariables.value(4980)){
+    case 0:
+        return this.enemy().params[paramId] * [0.8, 1, 0.8, 1, 0.8, 1, 1, 1][paramId];
+        break;
+    case 2:
+        return this.enemy().params[paramId] * [1.5, 1.2, 1.2, 1, 1.2, 1, 1, 1][paramId];
+        break;
+	case 3:
+        return this.enemy().params[paramId] * [2, 1.2, 1.5, 1.25, 1.5, 1.25, 1.25, 1][paramId];
+        break;
+	case 4:
+        return this.enemy().params[paramId] * [2.5, 1.2, 2, 1.75, 2, 1.75, 1.75, 1][paramId];
+        break;
+    default:
+        return this.enemy().params[paramId];
+	}
 };
 
 Game_Enemy.prototype.exp = function() {
-    return this.enemy().exp;
+    return Math.floor(this.enemy().exp * this.exr);
 };
 
 Game_Enemy.prototype.gold = function() {
@@ -4792,9 +4868,9 @@ Game_Party.prototype.members = function() {
 };
 
 Game_Party.prototype.allMembers = function() {
-    return this._actors.map(function(id) {
+    return Array.isArray(this._actors)? this._actors.map(function(id) {
         return $gameActors.actor(id);
-    });
+    }) : [];
 };
 
 Game_Party.prototype.battleMembers = function() {
@@ -5373,9 +5449,9 @@ Game_Troop.prototype.increaseTurn = function() {
 };
 
 Game_Troop.prototype.expTotal = function() {
-    return this.deadMembers().reduce(function(r, enemy) {
-        return r + enemy.exp();
-    }, 0);
+	return this.deadMembers().reduce(function(r, enemy) {
+		return r + enemy.exp();
+	}, 0);
 };
 
 Game_Troop.prototype.goldTotal = function() {
@@ -10311,7 +10387,11 @@ Game_Interpreter.prototype.command320 = function() {
 Game_Interpreter.prototype.command321 = function() {
     var actor = $gameActors.actor(this._params[0]);
     if (actor && $dataClasses[this._params[1]]) {
+		var hpPer = actor.hp / actor.mhp;
+		var mpPer = actor.mp / actor.mmp;
         actor.changeClass(this._params[1], this._params[2]);
+		actor.setHp(Math.ceil(hpPer * actor.mhp));
+		actor.setMp(Math.ceil(mpPer * actor.mmp));
     }
     return true;
 };
@@ -10521,7 +10601,6 @@ Game_Interpreter.requestImages = function(list, commonList){
         switch(command.code){
             // Show Text
             case 101:
-                ImageManager.requestFace(params[0]);
                 break;
 
             // Common Event

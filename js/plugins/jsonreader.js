@@ -32,7 +32,11 @@
     { name: '$tag_skill_list', src: 'TagSkillList.json'},
     { name: '$psmessage', src: 'psmessage.json'},
     
-    { name: '$battleback', src: 'BattleBack.json'}
-    
+    { name: '$battleback', src: 'BattleBack.json'},
+    { name: '$hypnosisbase', src: 'HypnosisBase.json'},
   );
 })();
+
+
+
+

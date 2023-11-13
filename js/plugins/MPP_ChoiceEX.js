@@ -370,16 +370,27 @@ Game_Interpreter.prototype.setupChoices = function(params) {
 Game_Interpreter.prototype.addChoices = function(params, i, data, d) {
     var regIf = /\s*if\((.+?)\)/;
     var regEn = /\s*en\((.+?)\)/;
+    var regCmIf = /\s*cmpd\((.+?)\)/;
+    var regCmEn= /\s*cmxs\((.+?)\)/;
     for (var n = 0; n < params[0].length; n++) {
         var str = params[0][n];
         if (regIf.test(str)) {
             str = str.replace(regIf, '');
             if (RegExp.$1 && !this.evalChoice(RegExp.$1)) continue;
         }
+        if (regCmIf.test(str)) {
+            str = str.replace(regCmIf, '');
+            console.log(str);
+            if (RegExp.$1 && !this.evalChoiceCm(RegExp.$1)) continue;
+        }
         var enable = true;
         if (regEn.test(str)) {
             str = str.replace(regEn, '');
             enable = this.evalChoice(RegExp.$1);
+        }
+        if (regCmEn.test(str)) {
+            str = str.replace(regCmEn, '');
+            enable = this.evalChoiceCm(RegExp.$1);
         }
         data.choices.push(str);
         data.enables.push(enable);
@@ -431,7 +442,7 @@ Game_Interpreter.prototype.evalChoice = function(formula) {
     try {
         var s = $gameSwitches._data;
         var formula2 = formula.replace(/v\[(\d+)\]/g,
-            (match, p1) => $gameVariables.value(parseInt(p1)) );
+            (match, p1) => $gameVariables.value(parseInt(p1)));
         return !!eval(formula2);
     } catch (e) {
         alert("条件エラー \n\n " + formula);
@@ -439,6 +450,20 @@ Game_Interpreter.prototype.evalChoice = function(formula) {
     }
 };
 
+//新增催眠条件判断
+Game_Interpreter.prototype.evalChoiceCm = function(formula) {
+    try {
+        var formula2 = formula.replace(/cm\[(.*?)\]/g,
+            (match, p1) => {
+                var numericValue = parseInt(p1);
+                return isNaN(numericValue) ? $CM_value.get(p1.toString()) : $CM_value.get(numericValue);
+            });
+        return !!eval(formula2);
+    } catch (e) {
+        alert("条件エラー \n\n " + formula);
+        return true;
+    }
+};
 //362
 Game_Interpreter.prototype.command403 = function() {
     if (this._branch[this._indent] !== -2) {

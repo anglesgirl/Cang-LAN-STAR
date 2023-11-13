@@ -40,7 +40,7 @@ var $gameTroop        = null;
 var $gameMap          = null;
 var $gamePlayer       = null;
 var $testEvent        = null;
-
+var $CM_value = null;
 DataManager._globalId       = 'RPGMV';
 DataManager._lastAccessedId = 1;
 DataManager._errorUrl       = null;
@@ -211,6 +211,7 @@ DataManager.createGameObjects = function() {
     $gameTroop         = new Game_Troop();
     $gameMap           = new Game_Map();
     $gamePlayer        = new Game_Player();
+    $CM_value = new CM_Game_Variables();
 };
 
 DataManager.setupNewGame = function() {
@@ -440,6 +441,11 @@ DataManager.makeSaveContents = function() {
     contents.party        = $gameParty;
     contents.map          = $gameMap;
     contents.player       = $gamePlayer;
+
+    //新增变量
+    contents.CM_speedLevel = $CM_speedLevel;
+    contents.CM_runiu      = $CM_runiu;
+    contents.CM_value_data      =  JSON.stringify([...$CM_value._data]);
     return contents;
 };
 
@@ -454,6 +460,18 @@ DataManager.extractSaveContents = function(contents) {
     $gameParty         = contents.party;
     $gameMap           = contents.map;
     $gamePlayer        = contents.player;
+
+    //新增变量
+    $CM_speedLevel = contents.CM_speedLevel;
+    $CM_runiu      = contents.CM_runiu;
+    if(contents.CM_value_data == null)
+    {
+        //兼容旧档
+    }
+    else
+    {
+        $CM_value._data      =  new Map(JSON.parse(contents.CM_value_data));
+    }
 };
 
 //-----------------------------------------------------------------------------
@@ -467,6 +485,18 @@ function ConfigManager() {
 
 ConfigManager.alwaysDash        = false;
 ConfigManager.commandRemember   = false;
+ConfigManager.NoFpsLimit = false;
+ConfigManager.JumpE = false;
+ConfigManager.RandomE = false;
+ConfigManager.Home = false;
+ConfigManager.Capture = false;
+ConfigManager.PregDebuff = false;
+ConfigManager.Erode = false;
+ConfigManager.noTame = false;
+ConfigManager.noPump = false;
+ConfigManager.noScar = false;
+ConfigManager.noPaint = false;
+ConfigManager.noBlacken = false;
 
 Object.defineProperty(ConfigManager, 'bgmVolume', {
     get: function() {
@@ -530,6 +560,18 @@ ConfigManager.makeData = function() {
     var config = {};
     config.alwaysDash = this.alwaysDash;
     config.commandRemember = this.commandRemember;
+	config.NoFpsLimit = this.NoFpsLimit;
+	config.JumpE = this.JumpE;
+	config.RandomE = this.RandomE;
+	config.Home = this.Home;
+	config.Capture = this.Capture;
+	config.PregDebuff = this.PregDebuff;
+	config.Erode = this.Erode;
+	config.noTame = this.noTame;
+	config.noPump = this.noPump;
+	config.noScar = this.noScar;
+	config.noPaint = this.noPaint;
+	config.noBlacken = this.noBlacken;
     config.bgmVolume = this.bgmVolume;
     config.bgsVolume = this.bgsVolume;
     config.meVolume = this.meVolume;
@@ -540,6 +582,18 @@ ConfigManager.makeData = function() {
 ConfigManager.applyData = function(config) {
     this.alwaysDash = this.readFlag(config, 'alwaysDash');
     this.commandRemember = this.readFlag(config, 'commandRemember');
+	this.NoFpsLimit = this.readFlag(config,'NoFpsLimit');
+	this.JumpE = this.readFlag(config,'JumpE');
+	this.RandomE = this.readFlag(config,'RandomE');
+	this.Home = this.readFlag(config,'Home');
+	this.Capture = this.readFlag(config,'Capture');
+	this.PregDebuff = this.readFlag(config,'PregDebuff');
+	this.Erode = this.readFlag(config,'Erode');
+	this.noTame = this.readFlag(config,'noTame');
+	this.noPump = this.readFlag(config,'noPump');
+	this.noScar = this.readFlag(config,'noScar');
+	this.noPaint = this.readFlag(config,'noPaint');
+	this.noBlacken = this.readFlag(config,'noBlacken');
     this.bgmVolume = this.readVolume(config, 'bgmVolume');
     this.bgsVolume = this.readVolume(config, 'bgsVolume');
     this.meVolume = this.readVolume(config, 'meVolume');
@@ -1987,7 +2041,7 @@ SceneManager.updateMain = function() {
     if (Utils.isMobileSafari()) {
         this.changeScene();
         this.updateScene();
-    } else {
+    } else if(!ConfigManager.NoFpsLimit) {
         var newTime = this._getTimeInMsWithoutMobileSafari();
         var fTime = (newTime - this._currentTime) / 1000;
         if (fTime > 0.25) fTime = 0.25;
@@ -1999,7 +2053,11 @@ SceneManager.updateMain = function() {
             this.updateScene();
             this._accumulator -= this._deltaTime;
         }
-    }
+    } else {
+		this.updateInputData();
+		this.changeScene();
+		this.updateScene();
+	}
     this.renderScene();
     this.requestUpdate();
 };
@@ -2181,9 +2239,11 @@ BattleManager.initMembers = function() {
     this._statusWindow = null;
     this._spriteset = null;
     this._escapeRatio = 0;
+	this._escapeFailBoost = 0;
     this._escaped = false;
     this._rewards = {};
     this._turnForced = false;
+    $CM_value.set("战斗第一次复苏",0);
 };
 
 BattleManager.isBattleTest = function() {
@@ -2614,7 +2674,7 @@ BattleManager.processForcedAction = function() {
         this._subject = this._actionForcedBattler;
         this._actionForcedBattler = null;
         this.startAction();
-        this._subject.removeCurrentAction();
+        if(this._subject) this._subject.removeCurrentAction();
     }
 };
 
@@ -2629,7 +2689,7 @@ BattleManager.checkBattleEnd = function() {
         } else if ($gameParty.isAllDead()) {
             this.processDefeat();
             return true;
-        } else if ($gameTroop.isAllDead()) {
+        } else if ($gameTroop.isAllDead() && !$gameActors.actor(1).isStateAffected(166)) {
             this.processVictory();
             return true;
         }

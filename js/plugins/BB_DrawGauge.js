@@ -130,13 +130,17 @@ Window_Base.prototype.tpGaugeColor2 = function() {
 
 // 枠の描画
 var _Window_Base_prototype_drawGauge = Window_Base.prototype.drawGauge;
-Window_Base.prototype.drawGauge = function(x, y, width, rate, color1, color2) {
+Window_Base.prototype.drawGauge = function(x, y, width, rate, color1, color2, isMia) {
     var fillW = Math.floor(width * rate);
     var gaugeY = y + this.lineHeight() - 8;
     var gaugeBB = y + this.lineHeight() - 9;
     this.contents.fillRect(x - 1, gaugeBB - 1, width + 2, 8, this.textColor(BB_GFC));
     this.contents.fillRect(x, gaugeY - 1, width, 6, this.gaugeBackColor());
     this.contents.gradientFillRect(x, gaugeY - 1, fillW, 6, color1, color2);
+	if(isMia){
+		var ZX = ($gameVariables.value(1259) - $gameVariables.value(1030)) / 100 * width;
+		this.contents.gradientFillRect(x + ZX, gaugeY - 1, width - ZX, 6, 'rgba(255,42,242,1)', 'rgba(190,30,180,1)');
+	}
 };
 
 

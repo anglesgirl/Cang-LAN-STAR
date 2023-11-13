@@ -335,10 +335,11 @@ FTKR.EBC = FTKR.EBC || {};
     };
 
     Window_Command.prototype.drawBattleCommandName = function(index, x, y, width, align) {
-        this.drawText(this.commandName(index), x, y, width, align);
+            this.drawText(this.commandName(index), x, y, width, align);
     };
 
     Window_Command.prototype.addEbcCommand = function(name, symbol, enabled, ext, skillId) {
+        if(name == "色情技能" && !$gameActors.actor(1).isStateAffected(410))return;//战斗技能修改
         if (enabled === null) {
             enabled = true;
         }
@@ -598,7 +599,7 @@ FTKR.EBC = FTKR.EBC || {};
     Scene_Battle.prototype.commandCustom = function() {
         var skill = this._actorCommandWindow.currentEbcSkill();
         var action = BattleManager.inputtingAction();
-        action.setSkill(skill.id);
+        if(action) action.setSkill(skill.id);
         BattleManager.actor().setLastBattleSkill(skill);
         this.onSelectAction();
     };

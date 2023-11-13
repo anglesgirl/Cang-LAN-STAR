@@ -47,24 +47,38 @@ var Dif2ID = "なし"
 var DifID = "なし"
 var DifSE = "なし"
 var DifSemen = "なし"
+var Dif3ID = "なし"
 var DifBGS = "なし"//未使用
 
 //座標
-var Cutin1X = 248
+var Cutin1X = 240
 var Cutin1Y = 256
-var Cutin2X = 412
-var Cutin2Y = 464
 
+var user = $gameActors.actor(1);
+var StandPoseID = 1;
 //着用中衣装パラメータ
+var EqNum = 0;
+var Nipple = true;
+var FileNameCloth = 0;
 if($gameActors._data[1]._equips[EqCloth]._itemId >= 5){
-var EqNum = $gameActors._data[1]._equips[EqCloth]._itemId
-var CLOTHTAG = $dataArmors[EqNum].meta.ClothName
-var CLOTHID = Number($dataArmors[EqNum].meta.ClothPicNum); //衣装ピクチャ番号
-var UNDERFLAG = Number($dataArmors[EqNum].meta.ClothUnderFlag); //下着
+	EqNum = $gameActors._data[1]._equips[EqCloth]._itemId;
+	var CLOTHTAG = $dataArmors[EqNum].meta.ClothName;
+  if(EqNum == 65 && user.isStateAffected(94)) EqNum = 61
+  if(EqNum == 65 && user.isStateAffected(95)) EqNum = 62
+	if(EqNum == 67 && user.isStateAffected(94)) EqNum = 68
+  if(EqNum == 67 && user.isStateAffected(95)) EqNum = 69
+	if(EqNum == 71 && user.isStateAffected(94)) EqNum = 72;
+	if(EqNum == 71 && user.isStateAffected(95)) EqNum = 73;
+  if(EqNum == 76 && user.isStateAffected(94)) EqNum = 63;
+	if(EqNum == 76 && user.isStateAffected(95)) EqNum = 64;
+	/*if(EqNum == 77 && $gameActors.actor(1).isStateAffected(95)) EqNum = 78;*/
+	var UNDERFLAG = Number($dataArmors[EqNum].meta.ClothUnderFlag); //下着
+	FileNameCloth = $dataArmors[EqNum].meta.PID;
+if([65,61,62].includes(EqNum) && user.isStateAffected(88)) FileNameCloth += 'b';
+	if(!$dataArmors[EqNum].meta["CutinNipple"]) Nipple = false;
 }else{
-var CLOTHTAG = 'Naked'//全裸の場合
-var CLOTHID = 0; //衣装ピクチャ番号
-var UNDERFLAG = 1; //下着
+	var CLOTHTAG = 'Naked';
+	var UNDERFLAG = 1;
 }
 
 //変身中か否か
@@ -75,20 +89,25 @@ if($gameSwitches.value(131)){
 }
 
 //下着つけていない、かつ下着フラグオンの時
-if($gameVariables.value(756) == 0 && UNDERFLAG >= 1){
-    UNDERFLAG = 0; //下着
-    }
+if($gameActors._data[1]._equips[12]){
+	var k = $gameActors._data[1]._equips[12]._itemId;
+	if(k >= 5){
+		if($dataArmors[k].meta.ForceDisplay)  UNDERFLAG = 1;
+		if(UNDERFLAG >= 1 && Nipple && !$dataArmors[k].meta["CutinNipple"]) Nipple = false;
+	}else{
+		UNDERFLAG = 0;
+	}
+}else{UNDERFLAG = 0;}
+
     
-    //定義
-    var CUTINBASENUM = 0//部位ベース名
-    var CUTINFILENUM = 0//ファイル名末尾の番号
-    var CUTINCLOTHFLAG = 0//衣装反映の有無
-    var CUTINTITESFLAG = 0//タイツ反映
-    var CUTINOPTIONFLAG = 0//下着反映(タイツが優先)
-    var CUTINALTFLAG = 0//変身差分(ベース番号に加算)
-
-
-
+//定義
+var CUTINBASENUM = 0//部位ベース名
+var CUTINFILENUM = 0//ファイル名末尾の番号
+var CUTINCLOTHFLAG = 0//衣装反映の有無
+var CUTINTITESFLAG = 0//タイツ反映
+var CUTINOPTIONFLAG = 0//下着反映(タイツが優先)
+var CUTINALTFLAG = 0//変身差分(ベース番号に加算)
+var nocloth = 0
 
 //相手タイプ
 //胸
@@ -134,6 +153,13 @@ if(EroCutinAddID == "乳首弄り"){
     CUTINBASENUM = "breast"
     CUTINFILENUM = 1//ベースファイル開始番号
   }
+  else if(EroCutinAddID == "舔胸"){
+    var Dif2ID = "なし"
+    var DifID = "tongue_0002"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "breast"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
   else if(EroCutinAddID == "スライム_胸"){
     var Dif2ID = "なし"
     var DifID = "slime_0001"
@@ -155,14 +181,97 @@ if(EroCutinAddID == "乳首弄り"){
     CUTINBASENUM = "breast"
     CUTINFILENUM = 1//ベースファイル開始番号
   }
-  else if(EroCutinAddID == "胸注射"){
+  else if(EroCutinAddID == "胸注射动_1"){
     var Dif2ID = "なし"
-    var DifID = "なし"
+    var DifID = "needle_0001"
     var DifSE = "なし"//SE
     CUTINBASENUM = "breast"
     CUTINFILENUM = 1//ベースファイル開始番号
   }
+  else if(EroCutinAddID == "胸注射动_2"){
+    var Dif2ID = "なし"
+    var DifID = "needle_0002"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "breast"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if(EroCutinAddID == "胸注射动_3"){
+    var Dif2ID = "なし"
+    var DifID = "needle_0003"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "breast"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if(EroCutinAddID == "胸注射动_4"){
+    var Dif2ID = "なし"
+    var DifID = "needle_0004"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "breast"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if (EroCutinAddID == "胸注射动_5"){
+    var Dif2ID = "なし"
+    var DifID = "needle_0005"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "breast"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if (EroCutinAddID == "胸刺环_1"){
+    var Dif2ID = "なし"
+    var DifID = "なし"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "acme"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if (EroCutinAddID == "胸刺环_2"){
+    var Dif2ID = "なし"
+    var DifID = "continuous"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "acme"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if (EroCutinAddID == "鼻刺环_1"){
+    var Dif2ID = "なし"
+    var DifID = "なし"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "kiss"
+    CUTINFILENUM = 1//ベースファイル開始番号
 
+  }
+  else if (EroCutinAddID == "鼻刺环_2"){
+    var Dif2ID = "なし"
+    var DifID = "continuous"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "kiss"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if(EroCutinAddID == "乳交_1"){
+    var Dif2ID = "なし"
+    var DifID = "なし"
+    var Dif3ID = "sex01"
+    var DifSE = "Knead01"//SE
+    CUTINBASENUM = "breast"
+    nocloth = 1
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if(EroCutinAddID == "乳交_2"){
+    var Dif2ID = "なし"
+    var Dif2ID = "なし"
+    var Dif3ID = "sex02"
+    var DifSE = "Knead01"//SE
+    CUTINBASENUM = "breast"
+    nocloth = 1
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
+  else if(EroCutinAddID == "乳交_射精"){
+    var Dif2ID = "なし"
+    var Dif2ID = "なし"
+    var DifSemen = "Semen_0001"
+    var DifSE = "Knead01"//SE
+    CUTINBASENUM = "breast"
+    nocloth = 1
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
 //あそこ
   else if(EroCutinAddID == "膣触り"){
     var Dif2ID = "なし"
@@ -185,6 +294,13 @@ if(EroCutinAddID == "乳首弄り"){
     CUTINBASENUM = "vagina"
     CUTINFILENUM = 1//ベースファイル開始番号
   }
+  else if(EroCutinAddID == "抚摸阴部"){
+    var Dif2ID = "なし"
+    var DifID = "0017"
+    var DifSE = "TouchWet01"//SE
+    CUTINBASENUM = "vagina"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }  
   else if(EroCutinAddID == "繊毛触手_膣"){
     var Dif2ID = "なし"
     var DifID = "0011"
@@ -227,6 +343,13 @@ if(EroCutinAddID == "乳首弄り"){
     CUTINBASENUM = "vagina"
     CUTINFILENUM = 1//ベースファイル開始番号
   }
+  else if(EroCutinAddID == "舔逼"){
+    var Dif2ID = "なし"
+    var DifID = "tongue_0002"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "vagina"
+    CUTINFILENUM = 1//ベースファイル開始番号
+  }
 
   else if(EroCutinAddID == "タイツ"){
     var Dif2ID = "なし"
@@ -237,6 +360,13 @@ if(EroCutinAddID == "乳首弄り"){
   }
 
 //尻
+else if(EroCutinAddID == "舔屁股"){
+    var Dif2ID = "なし"
+    var DifID = "tongue_0002"
+    var DifSE = "なし"//SE
+    CUTINBASENUM = "hip"
+    CUTINFILENUM = 1//ベースファイル開始番号
+}
 else if(EroCutinAddID == "尻覗かれ"){
   var Dif2ID = "なし"
   var DifID = "なし"
@@ -508,7 +638,7 @@ else if(EroCutinAddID == "口奉仕_触手_射精"){
 else if(EroCutinAddID == "絶頂"){
   var Dif2ID = "なし"
   var DifID = "なし"
-  var DifSE = "なし"//SE
+  var DifSE = "Spouts01"//SE
   CUTINBASENUM = "acme"
   CUTINFILENUM = 1//ベースファイル開始番号
 }
@@ -524,36 +654,64 @@ else if(EroCutinAddID == "絶頂"){
 
 
 
-
-
-
-
-
-
 //ベースファイル指定
-if(CUTINBASENUM == "kiss"){
+var EyeFlag = 0;  //Expand2 k
+var HairFlag = 0; //Expand5 k bl a
+var BYTFlag = 0;  //Expand5 v h
+var RingFlag = 0; //Expand2 b a
+var ScarFlag = 0; //Expand1 k b v h a
+var PaintFlag = 0;//Expand3 b v h a
+var EroFlag = 0;  //Expand4 k b v h a
+var SemenFlag = 0;//Cutin1Semen1
+var BlackenFlag = 0;//Blacken
+var ClitFlag = 0; //Expand2 v
+  if(CUTINBASENUM == "kiss")
+  {
   CUTINCLOTHFLAG = 0//衣装差分の有無
   CUTINTITESFLAG = 0//タイツ差分の有無
   CUTINOPTIONFLAG = 0//オプション差分の有無
   CUTINALTFLAG = 1//変身差分の有無
+  ScarFlag = 1;
+  EroFlag = 1;
+  if($gameActors._data[1]._equips[9] && $gameActors._data[1]._equips[9]._itemId >= 5) EyeFlag = 1;
+  if($gameActors._data[1]._equips[10] && $gameActors._data[1]._equips[10]._itemId == 235) RingFlag = 1;//奶牛乳环的鼻环
+  HairFlag = 1;
   }
   else if(CUTINBASENUM == "breast")
   {
-  CUTINCLOTHFLAG = 1
-  CUTINTITESFLAG = 0
+  CUTINCLOTHFLAG = 1;
+  if(nocloth == 1) {CUTINCLOTHFLAG = 0; SemenFlag = 1;}
+  if($gameActors._data[1]._equips[7]._itemId == 301) CUTINTITESFLAG = 1;
+  else CUTINTITESFLAG = 0;
   CUTINOPTIONFLAG = 1
+  PaintFlag = 1;
+  ScarFlag = 1;
+  EroFlag = 1;
+  BlackenFlag = 1;
+  RingFlag = 1;
   }
   else if(CUTINBASENUM == "vagina")
   {
   CUTINCLOTHFLAG = 1
   CUTINTITESFLAG = 1
   CUTINOPTIONFLAG = 1
+  PaintFlag = 1;
+  ScarFlag = 1;
+  EroFlag = 1;
+  SemenFlag = 1;
+  BYTFlag = 1;
+  ClitFlag = 1;
   }
   else if(CUTINBASENUM ==  "hip")
   {
   CUTINCLOTHFLAG = 1
   CUTINTITESFLAG = 1
   CUTINOPTIONFLAG = 1
+  PaintFlag = 1;
+  ScarFlag = 1;
+  EroFlag = 1;
+  SemenFlag = 1;
+  BYTFlag = 1;
   }
   else if(CUTINBASENUM == "handjob")
   {
@@ -567,295 +725,261 @@ if(CUTINBASENUM == "kiss"){
   CUTINCLOTHFLAG = 0
   CUTINTITESFLAG = 0
   CUTINOPTIONFLAG = 0
-  CUTINALTFLAG = 0
   }
   else if(CUTINBASENUM == "blowjob")
   {
   CUTINCLOTHFLAG = 0
   CUTINTITESFLAG = 0
   CUTINOPTIONFLAG = 0
+  HairFlag = 1
   CUTINALTFLAG = 1
   }
   else if(CUTINBASENUM == "acme")
   {
   CUTINCLOTHFLAG = 0
   CUTINTITESFLAG = 0
-  CUTINOPTIONFLAG = 0
+  CUTINOPTIONFLAG = 1
   CUTINALTFLAG = 1
-  }else{{console.error(CUTINBASENUM + 'ベースファイル名未指定');}};
-  
-
-
-
-
-
-
-
+  PaintFlag = 1;
+  ScarFlag = 1;
+  EroFlag = 1;
+  HairFlag = 1;
+  BlackenFlag = 1;
+  RingFlag = 1;
+  }
+  else{{console.error(CUTINBASENUM + 'ベースファイル名未指定');}}; 
 //SE演奏
   if (CutinSE == 1 && DifSE != "なし"){
     var seindex = $se_list.seID.indexOf(DifSE);
     if(seindex != -1){
       var file =  $se_list.File[seindex];
       AudioManager.playSe({name: file,volume: 90, pitch: 100, pan: 0})
-      }else{}
-    }
+    }else{}
+  }
 
+  EraceCutinTotal();
 
-
-//スプライト表示
-
-//表示番号判定　アニメーションの兼ね合いもあるため今のところ1固定
-var CutinLine = 1
-//  if(SceneManager._scene.Cutin1Base && SceneManager._scene.Cutin2Base){
-//    if($gameVariables.value(980) == 0){var CutinLine = 1}
-//    else if($gameVariables.value(980) == 1){var CutinLine = 2}
-//    else{CutinLine = 1}
-//  }else if(SceneManager._scene.Cutin1Base){
-//    var CutinLine = 2
-// }else{
-//    var CutinLine = 1
-//  }
-//$gameVariables._data[980] = CutinLine//今回表示した番号
-
+var total = new Sprite();
+SceneManager._scene._spriteset.addChild(total)
+total.x = Cutin1X; total.y = Cutin1Y;
+SceneManager._scene.total = total;
 
 //後ろ(Dif2)
-if(CutinLine == 1){EraceCutin1Dif2()}else if(CutinLine == 2){EraceCutin2Dif2()} 
 if(Dif2ID != "なし"){
-  DIF2FILENAME = "actor01_cutin_" + CUTINBASENUM + "_h_" + Dif2ID//ファイル名
-  var bitmap = ImageManager.loadPicture(DIF2FILENAME);//ファイル名
-  var spriteDif2 = new Sprite(bitmap);//スプライト名
-  if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteDif2); spriteDif2.x = Cutin1X; spriteDif2.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Dif2 = spriteDif2;//シーン名、スプライト名
-  }else if(CutinLine == 2){
-    SceneManager._scene._spriteset.addChild(spriteDif2); spriteDif2.x = Cutin2X; spriteDif2.y = Cutin2Y;//スプライト名
-    SceneManager._scene.Cutin2Dif2 = spriteDif2;//シーン名、スプライト名
-  }else{{console.error('ラインのエラー')}}
+  FILENAME = "actor01_cutin_" + CUTINBASENUM + "_h_" + Dif2ID
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  SceneManager._scene.total.Cutin1Dif2 = s;
 }
 
-
-//素体表示(base、全裸の場合消去
-if(CutinLine == 1){EraceCutin1Base()}else if(CutinLine == 2){EraceCutin2Base()} 
+//素体表示
 if(CLOTHTAG == "Change" && CUTINALTFLAG >= 1){//変身中は素体ナンバー+1
   CUTINFILENUM += 1
 };
+if(CLOTHTAG == "DarkChange" && CUTINALTFLAG >= 1){
+  CUTINFILENUM += 2
+};
 if(CUTINFILENUM >= 10){
-  BASEFILENAME = "actor01_cutin_" + CUTINBASENUM + "_00" + CUTINFILENUM
+  FILENAME = "actor01_cutin_" + CUTINBASENUM + "_00" + CUTINFILENUM
 }else{
-  BASEFILENAME = "actor01_cutin_" + CUTINBASENUM + "_000" + CUTINFILENUM
+  FILENAME = "actor01_cutin_" + CUTINBASENUM + "_000" + CUTINFILENUM
 }
 
-var bitmap = ImageManager.loadPicture(BASEFILENAME);//ファイル名
-var spriteBase = new Sprite(bitmap);//スプライト名
-if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteBase); spriteBase.x = Cutin1X; spriteBase.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Base = spriteBase;//シーン名、スプライト名
-}else if(CutinLine == 2){
-  SceneManager._scene._spriteset.addChild(spriteBase); spriteBase.x = Cutin2X; spriteBase.y = Cutin2Y;//スプライト名
-  SceneManager._scene.Cutin2Base = spriteBase;//シーン名、スプライト名
-}else{{console.error('ラインのエラー')}};
-    
-  
+if(CUTINFILENUM >= 10){
+    FILENAME2 = "actor04_cutin_" + CUTINBASENUM + "_00" + CUTINFILENUM
+}else{
+    FILENAME2 = "actor04_cutin_" + CUTINBASENUM + "_000" + CUTINFILENUM
+}
+if($gameSwitches.value(3001) == true){
+  var bitmap = ImageManager.loadPicture(FILENAME2);
+}
+else{
+  var bitmap = ImageManager.loadPicture(FILENAME);
+}
+var s = new Sprite(bitmap);
+SceneManager._scene.total.addChild(s);  
+SceneManager._scene.total.Cutin1Base = s;
 
+//性器变黑
+if(BlackenFlag >= 1 && !ConfigManager.noBlacken){
+  FILENAME = "organ/" + CUTINBASENUM + "_" + "b"
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  s.opacity = (($gameVariables.value(1103)+$gameVariables.value(1074))/20*255).clamp(0,255);
+  SceneManager._scene.total.Blacken = s;
+}
+
+//扩展
+if(ScarFlag >= 1 && $gameActors.actor(1).isStateAffected(320)){//伤痕
+   FILENAME = 'mark/' + CUTINBASENUM + "_8";
+   var bitmap = ImageManager.loadPicture(FILENAME);
+   var s = new Sprite(bitmap);
+   SceneManager._scene.total.addChild(s);  
+   SceneManager._scene.total.Cutin1Expand1 = s;
+}
+if(ClitFlag >= 1 && $gameActors._data[1]._equips[14]._itemId > 5){//阴蒂环
+	FILENAME = 'clit/' + CUTINBASENUM + "_" + eval($dataArmors[$gameActors._data[1]._equips[14]._itemId].meta.PID);
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand2 = s;
+}
+if(!Nipple && RingFlag >= 1 && $gameActors._data[1]._equips[10]._itemId > 5){//物件乳环
+	FILENAME = 'nipple/' + CUTINBASENUM + "_" + eval($dataArmors[$gameActors._data[1]._equips[10]._itemId].meta.PID);
+  if(DifID == 'continuous') FILENAME += 'b';
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand2 = s;
+}
+if(EyeFlag >= 1 && $gameActors._data[1]._equips[9]._itemId > 5){//眼罩
+	FILENAME = 'eye/' + CUTINBASENUM + "_" + eval($dataArmors[$gameActors._data[1]._equips[9]._itemId].meta.PID);
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand2 = s;
+}
+if(PaintFlag >= 1 && $gameVariables.value(4900) > 0){//涂鸦
+	if($gameVariables.value(4900) <= 1){var PaintIndex = "11"}
+	else if($gameVariables.value(4900) <= 2){var PaintIndex = "12"}
+	else{var PaintIndex = "13"}
+	FILENAME = 'mark/' + CUTINBASENUM + "_" + PaintIndex;
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand3 = s;
+}
+if(EroFlag >= 1 && $gameVariables.value(1030) > 45 && ConfigManager.Erode){//侵蚀
+   FILENAME = 'mark/' + CUTINBASENUM + "_9";
+   var bitmap = ImageManager.loadPicture(FILENAME);
+   var s = new Sprite(bitmap);
+   SceneManager._scene.total.addChild(s);  
+   s.opacity = Math.min(($gameVariables.value(1030) - 45)*5,255);
+   SceneManager._scene.total.Cutin1Expand4 = s;
+}
+if(HairFlag >= 1){//头发换色
+	if(CUTINFILENUM >= 10) FILENAME = 'hair/' + CUTINBASENUM + "_" + CUTINFILENUM;
+    else FILENAME = 'hair/' + CUTINBASENUM + "_" + CUTINFILENUM;
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	if(CLOTHTAG == "Change" && CUTINALTFLAG >= 1) s.setColorTone($gameActors.actor(1).hairToneb);
+	else s.setColorTone($gameActors.actor(1).hairTone);
+	SceneManager._scene.total.Cutin1Expand5 = s;
+}
+
+if(Dif3ID != "なし"){//乳交
+  FILENAME = 'hyp/' + CUTINBASENUM + "_" + Dif3ID
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  SceneManager._scene.total.Cutin1Expand1 = s;
+}
   //オプション
-  if(CutinLine == 1){EraceCutin1Option()}else if(CutinLine == 2){EraceCutin2Option()}
-if(CUTINOPTIONFLAG >= 1 && UNDERFLAG >= 1 && ChangeFlag == false){//タイツオフ、下着オンかつ未返信
-  //console.log(CUTINOPTIONFLAG, UNDERFLAG,ChangeFlag,"ぱんつのみ")
-  var UNDERFILENAME = "actor01_cutin_" + CUTINBASENUM + "_option_" + "0001"
-  var bitmap = ImageManager.loadPicture(UNDERFILENAME);//ファイル名
-  var spriteOption = new Sprite(bitmap);//スプライト名
-  if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteOption); spriteOption.x = Cutin1X; spriteOption.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Option = spriteOption;//シーン名、スプライト名
-}else if(CutinLine == 2){
-  SceneManager._scene._spriteset.addChild(spriteOption); spriteOption.x = Cutin2X; spriteOption.y = Cutin2Y;//スプライト名
-  SceneManager._scene.Cutin2Option = spriteOption;//シーン名、スプライト名
-}else{{console.error('ラインのエラー')}};
+if(CUTINOPTIONFLAG >= 1 && UNDERFLAG >= 1 && $gameActors._data[1]._equips[12]._itemId > 5){//タイツオフ、下着オンかつ未返信
+  var FILENAME = 'under/' + CUTINBASENUM + "_" + eval($dataArmors[$gameActors._data[1]._equips[12]._itemId].meta.PID);
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  if($gameActors.actor(2).toneArray[k]) s.setColorTone($gameActors.actor(2).toneArray[k]);
+  SceneManager._scene.total.Cutin1Option = s;
 }
-//console.log(CUTINOPTIONFLAG, UNDERFLAG,ChangeFlag,"ぱんつのみ")
-
 
 //タイツ・足装備
-if(CutinLine == 1){EraceCutin1Tites()}else if(CutinLine == 2){EraceCutin2Tites()} 
-  if(CUTINTITESFLAG >= 1 && $gameActors._data[1]._equips[EqLeg]._itemId  == 300 && ChangeFlag == false){//タイツフラグonかつ足装備ID300かつ未変身
+if(CUTINTITESFLAG >= 1 && [300,301,307,309,310].includes($gameActors._data[1]._equips[EqLeg]._itemId) && ChangeFlag == false){//タイツフラグonかつ足装備ID300かつ未変身
   var LEGEQNUM = $gameActors._data[1]._equips[EqLeg]._itemId//足装備番号代入//黒タイツ以外たぶん落ちるので暫定的に↑でID300の場合のみにした
-  var FileNameLeg = $dataArmors[LEGEQNUM].meta.FileNumOption//足装備のタグからファイル番号読み込み
-  if($gameVariables.value(756) >= 1 && FileNameLeg == "0011"){FileNameLeg = "0012"}//下着着用中の処理
-  var LEGFILENAME = "actor01_cutin_" + CUTINBASENUM + "_option_" + FileNameLeg//ファイル名結合
-  var bitmap = ImageManager.loadPicture(LEGFILENAME);//ファイル名
-  var spriteTites = new Sprite(bitmap);//スプライト名
-  if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteTites); spriteTites.x = Cutin1X; spriteTites.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Tites = spriteTites;//シーン名、スプライト名
-}else if(CutinLine == 2){
-  SceneManager._scene._spriteset.addChild(spriteTites); spriteTites.x = Cutin2X; spriteTites.y = Cutin2Y;//スプライト名
-  SceneManager._scene.Cutin2Tites = spriteTites;//シーン名、スプライト名
-}else{{console.error('ラインのエラー')}};
-  }
-
-
+  var FileNameLeg = $dataArmors[LEGEQNUM].meta.PID;
+  var FILENAME = "actor01_cutin_" + CUTINBASENUM + "_option_" + "00" + (FileNameLeg.replace(/\D/g, '').length > 1 ? "" : "0") + FileNameLeg
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  s.opacity = 230;
+  if($gameActors.actor(2).toneArray[LEGEQNUM]) s.setColorTone($gameActors.actor(2).toneArray[LEGEQNUM]);
+  SceneManager._scene.total.Cutin1Tites = s;
+}
 
   //衣装表示
-  if(CutinLine == 1){EraceCutin1Cloth()}else if(CutinLine == 2){EraceCutin2Cloth()}
 if(EqNum >= 5 && CUTINCLOTHFLAG >= 1){//衣装フラグオンかつ5以上
-  if(EqNum == 71 && $gameActors.actor(1).isStateAffected(95)){//衣装全損
-  var FileNameCloth = "0023"
-  }
-  else if(EqNum == 71 && $gameActors.actor(1).isStateAffected(94)){//衣装半壊
-  var FileNameCloth = "0022"
-  }else{
-  var FileNameCloth = $dataArmors[EqNum].meta.FileNumCloth//衣装装備のタグからファイル番号読み込み
-  }
-  var CLOTHFILENAME = "actor01_cutin_" + CUTINBASENUM + "_cloth_" + FileNameCloth
-  var bitmap = ImageManager.loadPicture(CLOTHFILENAME);//ファイル名
-  var spriteCloth = new Sprite(bitmap);//スプライト名
-  if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteCloth); spriteCloth.x = Cutin1X; spriteCloth.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Cloth = spriteCloth;//シーン名、スプライト名
-}else if(CutinLine == 2){
-  SceneManager._scene._spriteset.addChild(spriteCloth); spriteCloth.x = Cutin2X; spriteCloth.y = Cutin2Y;//スプライト名
-  SceneManager._scene.Cutin2Cloth = spriteCloth;//シーン名、スプライト名
-}else{{console.error('ラインのエラー')}};
+  var FILENAME = "actor01_cutin_" + CUTINBASENUM + "_cloth_" + "00" + (FileNameCloth.replace(/\D/g, '').length > 1 ? "" : "0") + FileNameCloth
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  s.opacity = $gameVariables.value(4964);
+  if($gameActors.actor(2).toneArray[EqNum]) s.setColorTone($gameActors.actor(2).toneArray[EqNum]);
+  SceneManager._scene.total.Cutin1Cloth = s;
 }
-  
 
+if(Nipple && RingFlag >= 1 && $gameActors._data[1]._equips[10]._itemId > 5){//物件乳环
+	FILENAME = 'nipple/' + CUTINBASENUM + "_" + eval($dataArmors[$gameActors._data[1]._equips[10]._itemId].meta.PID) + 'b';
+  if(DifID != 'continuous') FILENAME = FILENAME.slice(0, -1);
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand2 = s;
+}
+
+if(BYTFlag >= 1 && $gameSwitches.value(2910)){//避孕套
+	FILENAME = 'BYT/' + CUTINBASENUM + "_" + $gameVariables.value(4888);
+	var bitmap = ImageManager.loadPicture(FILENAME);
+	var s = new Sprite(bitmap);
+	SceneManager._scene.total.addChild(s);  
+	SceneManager._scene.total.Cutin1Expand5 = s;
+}
+
+//身上带的精液 
+if(SemenFlag >= 1 && $gameVariables.value(942) > 0){
+  FILENAME = "actor01_cutin_" + CUTINBASENUM + "_" + "Semen_0001"
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  SceneManager._scene.total.Cutin1Semen1 = s;
+}
 
 //前
-if(CutinLine == 1){EraceCutin1Dif1()}else if(CutinLine == 2){EraceCutin2Dif1()}
-  if(DifID != "なし"){
-    DIFFILENAME = "actor01_cutin_" + CUTINBASENUM + "_h_" + DifID//ファイル名
-    var bitmap = ImageManager.loadPicture(DIFFILENAME);//ファイル名
-    var spriteDif1 = new Sprite(bitmap);//スプライト名
-    if(CutinLine == 1){
-    SceneManager._scene._spriteset.addChild(spriteDif1); spriteDif1.x = Cutin1X; spriteDif1.y = Cutin1Y;//スプライト名
-    SceneManager._scene.Cutin1Dif1 = spriteDif1;//シーン名、スプライト名
-  }else if(CutinLine == 2){
-    SceneManager._scene._spriteset.addChild(spriteDif1); spriteDif1.x = Cutin2X; spriteDif1.y = Cutin2Y;//スプライト名
-    SceneManager._scene.Cutin2Dif1 = spriteDif1;//シーン名、スプライト名
-  }else{{console.error('ラインのエラー')}};
+if(DifID != "なし" && DifID != 'continuous'){
+    FILENAME = "actor01_cutin_" + CUTINBASENUM + "_h_" + DifID
+    var bitmap = ImageManager.loadPicture(FILENAME);
+    var s = new Sprite(bitmap);
+    SceneManager._scene.total.addChild(s);  
+    SceneManager._scene.total.Cutin1Dif1 = s;
 };
-
-
-//汁
-if(CutinLine == 1){EraceCutin1Semen1()}else if(CutinLine == 2){EraceCutin2Semen1()}
+//发射的精液
 if(DifSemen != "なし"){
-  SEMENFILENAME = "actor01_cutin_" + CUTINBASENUM + "_" + DifSemen
-  var bitmap = ImageManager.loadPicture(SEMENFILENAME);//ファイル名
-  var spriteSemen1 = new Sprite(bitmap);//スプライト名
-  if(CutinLine == 1){
-  SceneManager._scene._spriteset.addChild(spriteSemen1); spriteSemen1.x = Cutin1X; spriteSemen1.y = Cutin1Y;//スプライト名
-  SceneManager._scene.Cutin1Semen1 = spriteSemen1;//シーン名、スプライト名
-}else if(CutinLine == 2){
-  SceneManager._scene._spriteset.addChild(spriteSemen1); spriteSemen1.x = Cutin2X; spriteSemen1.y = Cutin2Y;//スプライト名
-  SceneManager._scene.Cutin2Semen1 = spriteSemen1;//シーン名、スプライト名
-}else{{console.error('ラインのエラー')}};
+  FILENAME = "actor01_cutin_" + CUTINBASENUM + "_" + DifSemen
+  var bitmap = ImageManager.loadPicture(FILENAME);
+  var s = new Sprite(bitmap);
+  SceneManager._scene.total.addChild(s);  
+  SceneManager._scene.total.Cutin1Semen1 = s;
 }
-
-    
-
-
+	
 //アニメーション座標
-if(CutinLine == 1){
 var CutinAnimeX = 0 + Cutin1X
 var CutinAnimeY = 0 + Cutin1Y
-}
-else if(CutinLine == 2){
-var CutinAnimeX = 0 + Cutin2X
-var CutinAnimeY = 0 + Cutin2Y
-}
-if (AnimeX != 0){
-CutinAnimeX += AnimeX
-}
-if (AnimeY != 0){
-CutinAnimeY += AnimeY
-}
+if (AnimeX != 0) CutinAnimeX += AnimeX;
+if (AnimeY != 0) CutinAnimeY += AnimeY;
+
 if (AnimeX != 0 || AnimeY != 0){
 
 //番号、原点、X,Y,拡大、不透明、合成、移動ウェイト
 //アニメウェイト
-var AnimeWait = 10;
+	var AnimeWait = 6;
 
 //動かす処理、スプライトに置き換える場合上部の処理変更
-//ライン1
-  if(CutinLine == 1){
-    if(SceneManager._scene.Cutin1Dif2){
-      Torigoya.Tween.create(SceneManager._scene.Cutin1Dif2)
+    if(SceneManager._scene.total){
+      Torigoya.Tween.create(SceneManager._scene.total)
       .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
       .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Base){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Base)
-        .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-        .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Option){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Option)
-        .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-        .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Tites){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Tites)
-        .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-        .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Cloth){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Cloth)
-        .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-        .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Dif1){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Dif1)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
-      if(SceneManager._scene.Cutin1Semen1){
-        Torigoya.Tween.create(SceneManager._scene.Cutin1Semen1)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin1X,y: Cutin1Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-      }
     }
-
-//ライン2
-if(CutinLine == 2){
-  if(SceneManager._scene.Cutin2Dif2){
-    Torigoya.Tween.create(SceneManager._scene.Cutin2Dif2)
-    .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-    .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Base){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Base)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Option){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Option)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Tites){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Tites)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Cloth){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Cloth)
-      .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-      .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Dif1){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Dif1)
-    .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-    .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-    if(SceneManager._scene.Cutin2Semen1){
-      Torigoya.Tween.create(SceneManager._scene.Cutin2Semen1)
-    .to({x: CutinAnimeX,y: CutinAnimeY},AnimeWait, Torigoya.Tween.Easing.easeOutSine)
-    .to({x: Cutin2X,y: Cutin2Y},AnimeWait, Torigoya.Tween.Easing.easeOutSine).start()
-    }
-  }
+	
 }
 
-this.wait(5)
+//ライン2
+
+$gameVariables._data[4869] = 0;
+$gameSwitches._data[2919] = true;
+this.wait(5);
 
 //おわり
 };
@@ -864,142 +988,18 @@ this.wait(5)
 
 
 
-//消去コマンド
-if (command === 'EraceCutin1' || command === 'eracecutin1') {//消去1
-  EraceCutin1Base()
-  EraceCutin1Cloth()
-  EraceCutin1Semen1()
-  EraceCutin1Dif1()
-  EraceCutin1Dif2()
-  EraceCutin1Option()
-  EraceCutin1Tites()
-}
-if (command === 'EraceCutin2' || command === 'eracecutin2') {
-  EraceCutin2Base()
-  EraceCutin2Cloth()
-  EraceCutin2Semen1()
-  EraceCutin2Dif1()
-  EraceCutin2Dif2()
-  EraceCutin2Option()
-  EraceCutin2Tites()
-}
-if (command === 'EraceCutinAll' || command ==='eracecutinall') {//全消去
-  EraceCutin1Base()
-  EraceCutin1Cloth()
-  EraceCutin1Semen1()
-  EraceCutin1Dif1()
-  EraceCutin1Dif2()
-  EraceCutin1Option()
-  EraceCutin1Tites()
-  EraceCutin2Base()
-  EraceCutin2Cloth()
-  EraceCutin2Semen1()
-  EraceCutin2Dif1()
-  EraceCutin2Dif2()
-  EraceCutin2Option()
-  EraceCutin2Tites()
-  }
+	if (command === 'EraceCutinAll' || command ==='eracecutinall' || command === 'EraceCutin1' || command === 'eracecutin1') {//全消去
+		EraceCutinTotal()
+	}
 };
 
 
 
 //消去用関数
-function EraceCutin1Base() {
-  if(SceneManager._scene.Cutin1Base) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Base)//シーン名変更
-    SceneManager._scene.Cutin1Base = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Cloth() {
-  if(SceneManager._scene.Cutin1Cloth) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Cloth)//シーン名変更
-    SceneManager._scene.Cutin1Cloth = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Dif1() {
-  if(SceneManager._scene.Cutin1Dif1) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Dif1)//シーン名変更
-    SceneManager._scene.Cutin1Dif1 = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Dif2() {
-  if(SceneManager._scene.Cutin1Dif2) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Dif2)//シーン名変更
-    SceneManager._scene.Cutin1Dif2 = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Tites() {
-  if(SceneManager._scene.Cutin1Tites) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Tites)//シーン名変更
-    SceneManager._scene.Cutin1Tites = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Option() {
-  if(SceneManager._scene.Cutin1Option) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Option)//シーン名変更
-    SceneManager._scene.Cutin1Option = null;//シーン名変更
-  }
-};
-
-function EraceCutin1Semen1() {
-  if(SceneManager._scene.Cutin1Semen1) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin1Semen1)//シーン名変更
-    SceneManager._scene.Cutin1Semen1 = null;//シーン名変更
-  }
-};
-
-//カットイン2
-function EraceCutin2Base() {
-  if(SceneManager._scene.Cutin2Base) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Base)//シーン名変更
-    SceneManager._scene.Cutin2Base = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Cloth() {
-  if(SceneManager._scene.Cutin2Cloth) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Cloth)//シーン名変更
-    SceneManager._scene.Cutin2Cloth = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Dif1() {
-  if(SceneManager._scene.Cutin2Dif1) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Dif1)//シーン名変更
-    SceneManager._scene.Cutin2Dif1 = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Dif2() {
-  if(SceneManager._scene.Cutin2Dif2) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Dif2)//シーン名変更
-    SceneManager._scene.Cutin2Dif2 = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Option() {
-  if(SceneManager._scene.Cutin2Option) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Option)//シーン名変更
-    SceneManager._scene.Cutin2Option = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Tites() {
-  if(SceneManager._scene.Cutin2Tites) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Tites)//シーン名変更
-    SceneManager._scene.Cutin2Tites = null;//シーン名変更
-  }
-};
-
-function EraceCutin2Semen1() {
-  if(SceneManager._scene.Cutin2Semen1) {//既に表示がある場合消す処理//シーン名変更
-    SceneManager._scene._spriteset.removeChild(SceneManager._scene.Cutin2Semen1)//シーン名変更
-    SceneManager._scene.Cutin2Semen1 = null;//シーン名変更
+function EraceCutinTotal() {
+  if(SceneManager._scene.total) {//既に表示がある場合消す処理//シーン名変更
+    SceneManager._scene._spriteset.removeChild(SceneManager._scene.total)//シーン名変更
+    SceneManager._scene.total = null;//シーン名変更
   }
 };
 

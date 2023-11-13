@@ -365,16 +365,16 @@
 
 var $dataTemplateEvents = null;
 
-(function() {
+(function () {
     'use strict';
     var metaTagPrefix = 'TE';
 
-    var getMetaValue = function(object, name) {
+    var getMetaValue = function (object, name) {
         var metaTagName = metaTagPrefix + (name ? name : '');
         return object.meta.hasOwnProperty(metaTagName) ? object.meta[metaTagName] : undefined;
     };
 
-    var getMetaValues = function(object, names) {
+    var getMetaValues = function (object, names) {
         if (!object) return undefined;
         if (!Array.isArray(names)) return getMetaValue(object, names);
         for (var i = 0, n = names.length; i < n; i++) {
@@ -384,49 +384,54 @@ var $dataTemplateEvents = null;
         return undefined;
     };
 
-    var getArgNumber = function(arg, min, max) {
+    var getArgNumber = function (arg, min, max) {
         if (arguments.length < 2) min = -Infinity;
         if (arguments.length < 3) max = Infinity;
         return (parseInt(arg) || 0).clamp(min, max);
     };
 
-    var convertEscapeCharacters = function(text) {
+    var convertEscapeCharacters = function (text) {
         if (isNotAString(text)) text = '';
         text = text.replace(/\\/g, '\x1b');
         text = text.replace(/\x1b\x1b/g, '\\');
-        text = text.replace(/\x1bV\[(\d+)]/gi, function() {
+        text = text.replace(/\x1bV\[(\d+)]/gi, function () {
             return $gameVariables.value(parseInt(arguments[1]));
         }.bind(this));
-        text = text.replace(/\x1bV\[(\d+)]/gi, function() {
+        text = text.replace(/\x1bV\[(\d+)]/gi, function () {
             return $gameVariables.value(parseInt(arguments[1]));
         }.bind(this));
-        text = text.replace(/\x1bN\[(\d+)]/gi, function() {
+        text = text.replace(/\x1bN\[(\d+)]/gi, function () {
             var actor = parseInt(arguments[1]) >= 1 ? $gameActors.actor(parseInt(arguments[1])) : null;
             return actor ? actor.name() : '';
         }.bind(this));
-        text = text.replace(/\x1bP\[(\d+)]/gi, function() {
+        text = text.replace(/\x1bP\[(\d+)]/gi, function () {
             var actor = parseInt(arguments[1]) >= 1 ? $gameParty.members()[parseInt(arguments[1]) - 1] : null;
             return actor ? actor.name() : '';
         }.bind(this));
         text = text.replace(/\x1bG/gi, TextManager.currencyUnit);
+
+        text = text.replace(/\x1bCM\[(.*?)\]/gi, function() {
+            var numericValue = parseInt(arguments[1]);
+            return isNaN(numericValue) ? $CM_value.get(arguments[1].toString()) : $CM_value.get(numericValue);
+        }.bind(this));
         return text;
     };
 
-    var isNotAString = function(args) {
+    var isNotAString = function (args) {
         return String(args) !== args;
     };
 
-    var isExistPlugin = function(pluginName) {
+    var isExistPlugin = function (pluginName) {
         return Object.keys(PluginManager.parameters(pluginName)).length > 0;
     };
 
-    var convertAllArguments = function(args) {
-        return args.map(function(arg) {
+    var convertAllArguments = function (args) {
+        return args.map(function (arg) {
             return convertEscapeCharacters(arg);
         });
     };
 
-    var setPluginCommand = function(commandName, methodName) {
+    var setPluginCommand = function (commandName, methodName) {
         pluginCommandMap.set(metaTagPrefix + commandName, methodName);
     };
 
@@ -448,8 +453,8 @@ var $dataTemplateEvents = null;
      * @param pluginName plugin name(EncounterSwitchConditions)
      * @returns {Object} Created parameter
      */
-    var createPluginParameter = function(pluginName) {
-        var paramReplacer = function(key, value) {
+    var createPluginParameter = function (pluginName) {
+        var paramReplacer = function (key, value) {
             if (value === 'null') {
                 return value;
             }
@@ -462,7 +467,7 @@ var $dataTemplateEvents = null;
                 return value;
             }
         };
-        var parameter     = JSON.parse(JSON.stringify(PluginManager.parameters(pluginName), paramReplacer));
+        var parameter = JSON.parse(JSON.stringify(PluginManager.parameters(pluginName), paramReplacer));
         PluginManager.setParameters(pluginName, parameter);
         return parameter;
     };
@@ -472,24 +477,24 @@ var $dataTemplateEvents = null;
     // Game_Interpreter
     //  プラグインコマンドを追加定義します。
     //=============================================================================
-    var _Game_Interpreter_command101      = Game_Interpreter.prototype.command101;
-    Game_Interpreter.prototype.command101 = function() {
+    var _Game_Interpreter_command101 = Game_Interpreter.prototype.command101;
+    Game_Interpreter.prototype.command101 = function () {
         if (!$gameMessage.isBusy()) {
             $gameMessage.setEventId(this._eventId);
         }
         return _Game_Interpreter_command101.apply(this, arguments);
     };
 
-    var _Game_Interpreter_command105      = Game_Interpreter.prototype.command105;
-    Game_Interpreter.prototype.command105 = function() {
+    var _Game_Interpreter_command105 = Game_Interpreter.prototype.command105;
+    Game_Interpreter.prototype.command105 = function () {
         if (!$gameMessage.isBusy()) {
             $gameMessage.setEventId(this._eventId);
         }
         return _Game_Interpreter_command105.apply(this, arguments);
     };
 
-    var _Game_Interpreter_pluginCommand      = Game_Interpreter.prototype.pluginCommand;
-    Game_Interpreter.prototype.pluginCommand = function(command, args) {
+    var _Game_Interpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
+    Game_Interpreter.prototype.pluginCommand = function (command, args) {
         _Game_Interpreter_pluginCommand.apply(this, arguments);
         var pluginCommandMethod = pluginCommandMap.get(command.toUpperCase());
         if (pluginCommandMethod) {
@@ -497,13 +502,13 @@ var $dataTemplateEvents = null;
         }
     };
 
-    Game_Interpreter.prototype.execCallOriginEvent = function(args) {
+    Game_Interpreter.prototype.execCallOriginEvent = function (args) {
         this.callOriginEvent(getArgNumber(args[0]));
     };
 
-    Game_Interpreter.prototype.execCallMapEvent = function(args) {
+    Game_Interpreter.prototype.execCallMapEvent = function (args) {
         var pageIndex = getArgNumber(args[1], 1);
-        var eventId   = getArgNumber(args[0]);
+        var eventId = getArgNumber(args[0]);
         if ($gameMap.event(eventId)) {
             this.callMapEventById(pageIndex, eventId);
         } else if (args[0] !== '') {
@@ -513,69 +518,69 @@ var $dataTemplateEvents = null;
         }
     };
 
-    Game_Interpreter.prototype.execControlSelfVariable = function(args) {
-        var selfIndex   = getArgNumber(args[0], 0) || args[0];
+    Game_Interpreter.prototype.execControlSelfVariable = function (args) {
+        var selfIndex = getArgNumber(args[0], 0) || args[0];
         var controlType = getArgNumber(args[1], 0, 5);
-        var operand     = isNaN(Number(args[2])) ? args[2] : getArgNumber(args[2]);
+        var operand = isNaN(Number(args[2])) ? args[2] : getArgNumber(args[2]);
         this.controlSelfVariable(selfIndex, controlType, operand, false);
     };
 
-    Game_Interpreter.prototype.execControlSelfVariableRange = function(args) {
+    Game_Interpreter.prototype.execControlSelfVariableRange = function (args) {
         var selfStartIndex = getArgNumber(args[0], 0) || args[0];
-        var selfEndIndex   = getArgNumber(args[1], 0) || args[0];
-        var controlType    = getArgNumber(args[2], 0, 5);
-        var operand        = isNaN(Number(args[3])) ? args[3] : getArgNumber(args[3]);
+        var selfEndIndex = getArgNumber(args[1], 0) || args[0];
+        var controlType = getArgNumber(args[2], 0, 5);
+        var operand = isNaN(Number(args[3])) ? args[3] : getArgNumber(args[3]);
         this.controlSelfVariableRange(selfStartIndex, selfEndIndex, controlType, operand, false);
     };
 
-    Game_Interpreter.prototype.callOriginEvent = function(pageIndex) {
+    Game_Interpreter.prototype.callOriginEvent = function (pageIndex) {
         var event = $gameMap.event(this._eventId);
         if (event && event.hasTemplate()) {
             this.setupAnotherList(null, event.getOriginalPages(), pageIndex);
         }
     };
 
-    Game_Interpreter.prototype.callMapEventById = function(pageIndex, eventId) {
+    Game_Interpreter.prototype.callMapEventById = function (pageIndex, eventId) {
         var event = $gameMap.event(eventId);
         if (event) {
             this.setupAnotherList(param.KeepEventId ? null : eventId, event.getPages(), pageIndex);
         }
     };
 
-    Game_Interpreter.prototype.callMapEventByName = function(pageIndex, eventName) {
+    Game_Interpreter.prototype.callMapEventByName = function (pageIndex, eventName) {
         var event = DataManager.searchDataItem($dataMap.events, 'name', eventName);
         if (event) {
             this.setupAnotherList(param.KeepEventId ? null : event.id, event.pages, pageIndex);
         }
     };
 
-    Game_Interpreter.prototype.setupAnotherList = function(eventId, pages, pageIndex) {
+    Game_Interpreter.prototype.setupAnotherList = function (eventId, pages, pageIndex) {
         var page = pages[pageIndex - 1 || this._pageIndex] || pages[0];
         if (!eventId) eventId = this.isOnCurrentMap() ? this._eventId : 0;
         this.setupChild(page.list, eventId);
     };
 
-    Game_Interpreter.prototype.controlSelfVariable = function(index, type, operand, formulaFlg) {
+    Game_Interpreter.prototype.controlSelfVariable = function (index, type, operand, formulaFlg) {
         var character = this.character(0);
         if (character) {
             character.controlSelfVariable(index, type, operand, formulaFlg);
         }
     };
 
-    Game_Interpreter.prototype.controlSelfVariableRange = function(startIndex, endIndex, type, operand, formulaFlg) {
+    Game_Interpreter.prototype.controlSelfVariableRange = function (startIndex, endIndex, type, operand, formulaFlg) {
         var character = this.character(0);
         if (character) {
             character.controlSelfVariableRange(startIndex, endIndex, type, operand, formulaFlg);
         }
     };
 
-    Game_Interpreter.prototype.getSelfVariable = function(selfVariableIndex) {
+    Game_Interpreter.prototype.getSelfVariable = function (selfVariableIndex) {
         var character = this.character(0);
         return character ? character.getSelfVariable(selfVariableIndex) : 0;
     };
 
-    Game_Interpreter.prototype.convertAllSelfVariables = function(args) {
-        return args.map(function(arg) {
+    Game_Interpreter.prototype.convertAllSelfVariables = function (args) {
+        return args.map(function (arg) {
             return $gameSelfSwitches.convertSelfVariableCharacter(this._eventId, arg, false);
         }, this);
     };
@@ -584,17 +589,17 @@ var $dataTemplateEvents = null;
     // Game_Message
     //  メッセージ表示中のイベントIDを保持します。
     //=============================================================================
-    var _Game_Message_clear      = Game_Message.prototype.clear;
-    Game_Message.prototype.clear = function() {
+    var _Game_Message_clear = Game_Message.prototype.clear;
+    Game_Message.prototype.clear = function () {
         _Game_Message_clear.apply(this, arguments);
         this._eventId = 0;
     };
 
-    Game_Message.prototype.setEventId = function(id) {
+    Game_Message.prototype.setEventId = function (id) {
         this._eventId = id;
     };
 
-    Game_Message.prototype.getEventId = function() {
+    Game_Message.prototype.getEventId = function () {
         return this._eventId;
     };
 
@@ -602,8 +607,8 @@ var $dataTemplateEvents = null;
     // Game_System
     //  ロード完了時に必要ならセルフ変数を初期化します。
     //=============================================================================
-    var _Game_System_onAfterLoad      = Game_System.prototype.onAfterLoad;
-    Game_System.prototype.onAfterLoad = function() {
+    var _Game_System_onAfterLoad = Game_System.prototype.onAfterLoad;
+    Game_System.prototype.onAfterLoad = function () {
         _Game_System_onAfterLoad.apply(this, arguments);
         $gameSelfSwitches.clearVariableIfNeed();
     };
@@ -612,27 +617,27 @@ var $dataTemplateEvents = null;
     // Game_SelfSwitches
     //  セルフ変数を追加します。
     //=============================================================================
-    var _Game_SelfSwitches_initialize      = Game_SelfSwitches.prototype.initialize;
-    Game_SelfSwitches.prototype.initialize = function() {
+    var _Game_SelfSwitches_initialize = Game_SelfSwitches.prototype.initialize;
+    Game_SelfSwitches.prototype.initialize = function () {
         _Game_SelfSwitches_initialize.apply(this, arguments);
         this.clearVariable();
     };
 
-    Game_SelfSwitches.prototype.clearVariable = function() {
+    Game_SelfSwitches.prototype.clearVariable = function () {
         this._variableData = {};
     };
 
-    Game_SelfSwitches.prototype.clearVariableIfNeed = function() {
+    Game_SelfSwitches.prototype.clearVariableIfNeed = function () {
         if (!this._variableData) {
             this.clearVariable();
         }
     };
 
-    Game_SelfSwitches.prototype.getVariableValue = function(key) {
+    Game_SelfSwitches.prototype.getVariableValue = function (key) {
         return this._variableData.hasOwnProperty(key) ? this._variableData[key] : 0;
     };
 
-    Game_SelfSwitches.prototype.setVariableValue = function(key, value) {
+    Game_SelfSwitches.prototype.setVariableValue = function (key, value) {
         if (this._variableData[key] === value) {
             return;
         }
@@ -644,13 +649,13 @@ var $dataTemplateEvents = null;
         this.onChange();
     };
 
-    Game_SelfSwitches.prototype.makeSelfVariableKey = function(eventId, index) {
+    Game_SelfSwitches.prototype.makeSelfVariableKey = function (eventId, index) {
         return eventId > 0 ? [$gameMap.mapId(), eventId, index] : null;
     };
 
-    Game_SelfSwitches.prototype.convertSelfVariableCharacter = function(eventId, text, scriptFlag) {
-        text = text.replace(/\x1bSV\[(\w+)]/gi, function() {
-            var key   = this.makeSelfVariableKey(eventId, arguments[1]);
+    Game_SelfSwitches.prototype.convertSelfVariableCharacter = function (eventId, text, scriptFlag) {
+        text = text.replace(/\x1bSV\[(\w+)]/gi, function () {
+            var key = this.makeSelfVariableKey(eventId, arguments[1]);
             var value = this.getVariableValue(key);
             return isNotAString(value) || !scriptFlag ? value : '\'' + value + '\'';
         }.bind(this));
@@ -661,8 +666,8 @@ var $dataTemplateEvents = null;
     // Game_Event
     //  テンプレートイベントマップをロードしてグローバル変数に保持します。
     //=============================================================================
-    var _Game_Event_initialize      = Game_Event.prototype.initialize;
-    Game_Event.prototype.initialize = function(mapId, eventId) {
+    var _Game_Event_initialize = Game_Event.prototype.initialize;
+    Game_Event.prototype.initialize = function (mapId, eventId) {
         var event = $dataMap.events[eventId];
         this.setTemplate(event);
         _Game_Event_initialize.apply(this, arguments);
@@ -670,17 +675,50 @@ var $dataTemplateEvents = null;
             this.setPosition(event.x, event.y);
             this.refreshBushDepth();
         }
+        var sw = ConfigManager.RandomE;
+        if (this._templateEvent) {
+            this._randomType = this._templateEvent.meta.hasOwnProperty('Random') ? this._templateEvent.meta['Random'] : undefined;
+            if (this._templateEvent.meta.hasOwnProperty('teacher')) { sw = true; this._randomType = 0.5; }
+        }
+        if ($dataMap.meta["RandomPos"] && sw) {
+            if (!!this._randomType && this._randomType < 4) {
+                if ($gameSelfSwitches.getVariableValue([mapId, eventId, 16]) == $gameVariables.value(202)) {
+                    this.locate($gameSelfSwitches.getVariableValue([mapId, eventId, 13]), $gameSelfSwitches.getVariableValue([mapId, eventId, 14]));
+                    this.setDirection($gameSelfSwitches.getVariableValue([mapId, eventId, 15]));
+                }
+                else {
+                    if (this._randomType == 1 && $gameSelfSwitches.getVariableValue([mapId, eventId, 17]) <= 100) $gameSelfSwitches.setVariableValue([$gameMap.mapId(), eventId, 17], Math.randomInt(100));
+                    var times = 0;
+                    while (true) {
+                        var x1 = Math.randomInt($dataMap.width);
+                        var y1 = Math.randomInt($dataMap.height);
+                        var mapData = $gameMap.layeredTiles(x1, y1);
+                        times++;
+                        if (Tilemap.isSameKindTileArray(mapData[3], $dataMap.meta.RandomPos) && $gameMap.eventIdXy(x1, y1) <= 0 &&
+                            ($gameMap.isPassable(x1, y1, 2) || $gameMap.isPassable(x1, y1, 4) || $gameMap.isPassable(x1, y1, 6) || $gameMap.isPassable(x1, y1, 8))) {
+                            this.locate(x1, y1);
+                            break;
+                        }
+                        if (times >= 100) break;
+                    }
+                }
+                if (this._randomType == 1 && $gameSelfSwitches.getVariableValue([mapId, eventId, 17]) <= $gameVariables.value(212)) {
+                    $dataMap.events.push(event);
+                    $gameSelfSwitches.setVariableValue([mapId, $dataMap.events.length - 1, 17], 999);
+                }
+            }
+        }
     };
 
-    var _Game_Event_setupPageSettings      = Game_Event.prototype.setupPageSettings;
-    Game_Event.prototype.setupPageSettings = function() {
+    var _Game_Event_setupPageSettings = Game_Event.prototype.setupPageSettings;
+    Game_Event.prototype.setupPageSettings = function () {
         _Game_Event_setupPageSettings.apply(this, arguments);
         if (this.hasTemplate() && param.OverrideTarget && this._override) {
             this.overridePageSettings();
         }
     };
 
-    Game_Event.prototype.overridePageSettings = function() {
+    Game_Event.prototype.overridePageSettings = function () {
         var page = this.getOriginalPage();
         if (!page) {
             return;
@@ -731,7 +769,7 @@ var $dataTemplateEvents = null;
         }
     };
 
-    Game_Event.prototype.setTemplate = function(event) {
+    Game_Event.prototype.setTemplate = function (event) {
         var value = getMetaValues(event, '');
         if (value) {
             var templateId = getArgNumber(value, 0, $dataTemplateEvents.length - 1);
@@ -741,107 +779,107 @@ var $dataTemplateEvents = null;
             }
             this._templateId = templateId;
             this._templateEvent = $dataTemplateEvents[this._templateId];
-            this._override   = param.AutoOverride || !!getMetaValues(event, ['OverRide', '上書き']);
+            this._override = param.AutoOverride || !!getMetaValues(event, ['OverRide', '上書き']);
             if (param.IntegrateNote > 0) {
                 this.integrateNote(event, param.IntegrateNote);
             }
         } else {
             this._templateId = 0;
             this._templateEvent = null;
-            this._override   = false;
+            this._override = false;
         }
     };
 
-    Game_Event.prototype.integrateNote = function(event, type) {
+    Game_Event.prototype.integrateNote = function (event, type) {
         this._templateEvent = JsonEx.makeDeepCopy(this._templateEvent);
         this._templateEvent.note = (type === 1 ? this._templateEvent.note : '') + event.note;
         DataManager.extractMetadata(this._templateEvent);
     };
 
     Game_Event._userScripts = ['getTemplateId', 'getTemplateName'];
-    Game_Event.prototype.getTemplateId = function() {
+    Game_Event.prototype.getTemplateId = function () {
         return this._templateId;
     };
 
-    Game_Event.prototype.getTemplateName = function() {
+    Game_Event.prototype.getTemplateName = function () {
         return this.hasTemplate() ? this._templateEvent.name : '';
     };
 
-    Game_Event.prototype.hasTemplate = function() {
+    Game_Event.prototype.hasTemplate = function () {
         return this._templateId > 0;
     };
 
-    var _Game_Event_event      = Game_Event.prototype.event;
-    Game_Event.prototype.event = function() {
+    var _Game_Event_event = Game_Event.prototype.event;
+    Game_Event.prototype.event = function () {
         return this.hasTemplate() ? this._templateEvent : _Game_Event_event.apply(this, arguments);
     };
 
-    Game_Event.prototype.getOriginalPages = function() {
+    Game_Event.prototype.getOriginalPages = function () {
         var eventId = isExistPlugin('SAN_MapGenerator') ? this._dataEventId : this._eventId;
         return $dataMap.events[eventId].pages;
     };
 
-    Game_Event.prototype.getOriginalPage = function() {
+    Game_Event.prototype.getOriginalPage = function () {
         return this.getOriginalPages()[this._pageIndex];
     };
 
-    Game_Event.prototype.getPages = function() {
+    Game_Event.prototype.getPages = function () {
         return this.event().pages;
     };
 
-    var _Game_Event_meetsConditions      = Game_Event.prototype.meetsConditions;
-    Game_Event.prototype.meetsConditions = function(page) {
+    var _Game_Event_meetsConditions = Game_Event.prototype.meetsConditions;
+    Game_Event.prototype.meetsConditions = function (page) {
         return _Game_Event_meetsConditions.apply(this, arguments) && this.meetsConditionsForSelfVariable(page);
     };
 
-    Game_Event.prototype.meetsConditionsForSelfVariable = function(page) {
+    Game_Event.prototype.meetsConditionsForSelfVariable = function (page) {
         var comment = this.getStartComment(page);
         return !(comment && this.execConditionScriptForSelfVariable(comment) === false);
     };
 
-    Game_Event.prototype.getStartComment = function(page) {
-        return page.list.filter(function(command) {
+    Game_Event.prototype.getStartComment = function (page) {
+        return page.list.filter(function (command) {
             return command && (command.code === 108 || command.code === 408);
-        }).reduce(function(prev, command) {
+        }).reduce(function (prev, command) {
             return prev + command.parameters[0];
         }, '');
     };
 
-    Game_Event.prototype.execConditionScriptForSelfVariable = function(note) {
+    Game_Event.prototype.execConditionScriptForSelfVariable = function (note) {
         var scripts = [];
-        note.replace(/\\TE{(.+?)}/gi, function() {
+        note.replace(/\\TE{(.+?)}/gi, function () {
             scripts.push(arguments[1]);
         }.bind(this));
-        return scripts.every(function(script) {
+        return scripts.every(function (script) {
             script = convertEscapeCharacters(script);
             script = $gameSelfSwitches.convertSelfVariableCharacter(this._eventId, script, true);
             return eval(script);
         }, this);
     };
 
-    Game_Event.prototype.getSelfVariableKey = function(index) {
+    Game_Event.prototype.getSelfVariableKey = function (index) {
         return $gameSelfSwitches.makeSelfVariableKey(this._eventId, index);
     };
 
-    Game_Event.prototype.controlSelfVariable = function(index, type, operand, formulaFlg) {
+    Game_Event.prototype.controlSelfVariable = function (index, type, operand, formulaFlg) {
         var key = this.getSelfVariableKey(index);
         if (key) {
             this.operateSelfVariable(key, type, formulaFlg ? eval(operand) : operand);
         }
     };
 
-    Game_Event.prototype.controlSelfVariableRange = function(startIndex, endIndex, type, operand, formulaFlg) {
+    Game_Event.prototype.controlSelfVariableRange = function (startIndex, endIndex, type, operand, formulaFlg) {
         for (var index = startIndex; index <= endIndex; index++) {
             this.controlSelfVariable(index, type, operand, formulaFlg);
         }
     };
 
-    Game_Event.prototype.getSelfVariable = function(selfVariableIndex) {
+    Game_Event.prototype.getSelfVariable = function (selfVariableIndex) {
         var key = this.getSelfVariableKey(selfVariableIndex);
         return $gameSelfSwitches.getVariableValue(key);
     };
 
-    Game_Event.prototype.operateSelfVariable = function(key, operationType, value) {
+    Game_Event.prototype.operateSelfVariable = function (key, operationType, value) {
         var oldValue = $gameSelfSwitches.getVariableValue(key);
         switch (operationType) {
             case 0:  // Set
@@ -870,9 +908,9 @@ var $dataTemplateEvents = null;
     //  データ検索用の共通処理です。
     //=============================================================================
     if (!DataManager.searchDataItem) {
-        DataManager.searchDataItem = function(dataArray, columnName, columnValue) {
+        DataManager.searchDataItem = function (dataArray, columnName, columnValue) {
             var result = 0;
-            dataArray.some(function(dataItem) {
+            dataArray.some(function (dataItem) {
                 if (dataItem && dataItem[columnName] === columnValue) {
                     result = dataItem;
                     return true;
@@ -883,8 +921,8 @@ var $dataTemplateEvents = null;
         };
     }
 
-    var _Window_Base_convertEscapeCharacters      = Window_Base.prototype.convertEscapeCharacters;
-    Window_Base.prototype.convertEscapeCharacters = function(text) {
+    var _Window_Base_convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
+    Window_Base.prototype.convertEscapeCharacters = function (text) {
         text = _Window_Base_convertEscapeCharacters.apply(this, arguments);
         return $gameSelfSwitches.convertSelfVariableCharacter($gameMessage.getEventId(), text, false);
     };
@@ -893,26 +931,26 @@ var $dataTemplateEvents = null;
     // Scene_Boot
     //  テンプレートイベントマップをロードしてグローバル変数に保持します。
     //=============================================================================
-    var _Scene_Boot_create      = Scene_Boot.prototype.create;
-    Scene_Boot.prototype.create = function() {
+    var _Scene_Boot_create = Scene_Boot.prototype.create;
+    Scene_Boot.prototype.create = function () {
         _Scene_Boot_create.apply(this, arguments);
         this._templateMapGenerator = this.templateMapLoadGenerator();
         $dataMap = {};
     };
 
-    var _Scene_Boot_isReady      = Scene_Boot.prototype.isReady;
-    Scene_Boot.prototype.isReady = function() {
+    var _Scene_Boot_isReady = Scene_Boot.prototype.isReady;
+    Scene_Boot.prototype.isReady = function () {
         var isReady = _Scene_Boot_isReady.apply(this, arguments);
         return this._templateMapGenerator.next().done && isReady;
     };
 
-    Scene_Boot.prototype.templateMapLoadGenerator = function*() {
+    Scene_Boot.prototype.templateMapLoadGenerator = function* () {
         while (!DataManager.isMapLoaded()) {
             yield false;
         }
         // Resolve conflict for OnlineAvatar.js
         if (!$gamePlayer) {
-            $gamePlayer = {isTransferring:function() {}};
+            $gamePlayer = { isTransferring: function () { } };
         }
         DataManager.loadMapData(param.TemplateMapId);
         $gamePlayer = null;

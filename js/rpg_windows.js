@@ -290,6 +290,10 @@ Window_Base.prototype.convertEscapeCharacters = function(text) {
     text = text.replace(/\x1bP\[(\d+)\]/gi, function() {
         return this.partyMemberName(parseInt(arguments[1]));
     }.bind(this));
+    text = text.replace(/\x1bCM\[(.*?)\]/gi, function() {
+        var numericValue = parseInt(arguments[1]);
+        return isNaN(numericValue) ? $CM_value.get(arguments[1].toString()) : $CM_value.get(numericValue);
+    }.bind(this));
     text = text.replace(/\x1bG/gi, TextManager.currencyUnit);
     return text;
 };
@@ -552,10 +556,10 @@ Window_Base.prototype.drawActorHp = function(actor, x, y, width) {
     width = width || 186;
     var color1 = this.hpGaugeColor1();
     var color2 = this.hpGaugeColor2();
-    this.drawGauge(x, y, width, actor.hpRate(), color1, color2);
+    this.drawGauge(x, y, width, Math.max(actor.hpRate(),0), color1, color2, false);
     this.changeTextColor(this.systemColor());
     this.drawText(TextManager.hpA, x, y, 44);
-    this.drawCurrentAndMax(actor.hp, actor.mhp, x, y, width,
+    this.drawCurrentAndMax(Math.round(actor.hp), actor.mhp, x, y, width,
                            this.hpColor(actor), this.normalColor());
 };
 
@@ -563,10 +567,10 @@ Window_Base.prototype.drawActorMp = function(actor, x, y, width) {
     width = width || 186;
     var color1 = this.mpGaugeColor1();
     var color2 = this.mpGaugeColor2();
-    this.drawGauge(x, y, width, actor.mpRate(), color1, color2);
+    this.drawGauge(x, y, width, Math.max(actor.mpRate(),0), color1, color2, true);
     this.changeTextColor(this.systemColor());
     this.drawText(TextManager.mpA, x, y, 44);
-    this.drawCurrentAndMax(actor.mp, actor.mmp, x, y, width,
+    this.drawCurrentAndMax(Math.round(actor.mp), actor.mmp, x, y, width,
                            this.mpColor(actor), this.normalColor());
 };
 
@@ -1886,10 +1890,12 @@ Window_ItemCategory.prototype.update = function() {
 };
 
 Window_ItemCategory.prototype.makeCommandList = function() {
-    this.addCommand(TextManager.item,    'item');
-    this.addCommand(TextManager.weapon,  'weapon');
-    this.addCommand(TextManager.armor,   'armor');
+    this.addCommand('道具',    'noMaterialItem');
+	this.addCommand('素材',    'materialItem');
     this.addCommand(TextManager.keyItem, 'keyItem');
+	this.addCommand('成就',    'achievement');
+	this.addCommand(TextManager.weapon,  'weapon');
+    this.addCommand(TextManager.armor,   'armor');
 };
 
 Window_ItemCategory.prototype.setItemWindow = function(itemWindow) {
@@ -1945,14 +1951,18 @@ Window_ItemList.prototype.isCurrentItemEnabled = function() {
 
 Window_ItemList.prototype.includes = function(item) {
     switch (this._category) {
-    case 'item':
-        return DataManager.isItem(item) && item.itypeId === 1;
-    case 'weapon':
+    case 'noMaterialItem':
+        return DataManager.isItem(item) && item.itypeId === 1 && item.occasion < 3;
+    case 'materialItem':
+        return DataManager.isItem(item) && item.itypeId === 1 && item.occasion >= 3;
+    case 'achievement':
+        return DataManager.isItem(item) && item.itypeId === 5;
+    case 'keyItem':
+        return DataManager.isItem(item) && item.itypeId === 2;
+	case 'weapon':
         return DataManager.isWeapon(item);
     case 'armor':
         return DataManager.isArmor(item);
-    case 'keyItem':
-        return DataManager.isItem(item) && item.itypeId === 2;
     default:
         return false;
     }
@@ -2480,6 +2490,7 @@ Window_EquipItem.prototype.includes = function(item) {
     if (this._slotId < 0 || item.etypeId !== this._actor.equipSlots()[this._slotId]) {
         return false;
     }
+	if (item.etypeId == 1 && item.wtypeId == 2) return true;
     return this._actor.canEquip(item);
 };
 
@@ -2673,6 +2684,12 @@ Window_Options.prototype.makeCommandList = function() {
 Window_Options.prototype.addGeneralOptions = function() {
     this.addCommand(TextManager.alwaysDash, 'alwaysDash');
     this.addCommand(TextManager.commandRemember, 'commandRemember');
+	this.addCommand('帧率突破60帧限制','NoFpsLimit');
+	this.addCommand('敌人跳跃夹击系统','JumpE');
+	this.addCommand('敌人随机位置刷新','RandomE');
+	this.addCommand('末路后不传送回家','Home');
+	this.addCommand('末路后没收物品','Capture');
+	this.addCommand('妊娠Debuff','PregDebuff');
 };
 
 Window_Options.prototype.addVolumeOptions = function() {
@@ -4848,6 +4865,7 @@ Window_BattleLog.prototype.isFastForward = function() {
 };
 
 Window_BattleLog.prototype.push = function(methodName) {
+	if($gameSwitches.value(2917)) return;
     var methodArgs = Array.prototype.slice.call(arguments, 1);
     this._methods.push({ name: methodName, params: methodArgs });
 };
